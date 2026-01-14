@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 )
@@ -44,6 +45,8 @@ type Model struct {
 	canceled    bool
 	width       int
 	height      int
+	viewport    viewport.Model
+	useViewport bool
 }
 
 func New(commits []DisplayCommit, totalEffort int) *Model {
@@ -74,6 +77,7 @@ func New(commits []DisplayCommit, totalEffort int) *Model {
 		table:       t,
 		stage:       stageTable,
 	}
+	model.viewport = viewport.New(0, 0)
 	model.form = huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().Title("Start time (HH:MM)").Value(&model.startValue),
@@ -101,10 +105,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 		}
+		if m.stage == stageTable && m.useViewport {
+			var cmd tea.Cmd
+			m.viewport, cmd = m.viewport.Update(msg)
+			return m, cmd
+		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		m.table.SetWidth(msg.Width - 4)
+		if msg.Height > 6 {
+			m.table.SetHeight(msg.Height - 6)
+		}
+		m.viewport.Width = msg.Width
+		if msg.Height > 4 {
+			m.viewport.Height = msg.Height - 4
+		}
 	}
 
 	if m.stage == stageForm {
@@ -124,8 +140,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *Model) View() string {
 	if m.stage == stageTable {
+		tableView := m.table.View()
+		if strings.TrimSpace(tableView) == "" {
+			m.useViewport = true
+			m.viewport.SetContent(renderPlainTable(m.commits, m.totalEffort, m.width))
+			tableView = m.viewport.View()
+		} else {
+			m.useViewport = false
+		}
 		lines := []string{
-			m.table.View(),
+			tableView,
 			"",
 			"Press Enter to continue, Ctrl+C to cancel",
 		}
@@ -153,4 +177,56 @@ func Run(commits []DisplayCommit, totalEffort int) (Result, error) {
 		Confirm:  final.confirm,
 		Canceled: final.canceled,
 	}, nil
+}
+
+func renderPlainTable(commits []DisplayCommit, totalEffort int, width int) string {
+	hashWidth := 8
+	effortWidth := 6
+	percentWidth := 8
+	subjectWidth := 50
+	if width > 0 {
+		available := width - (hashWidth + effortWidth + percentWidth + 6)
+		if available < 20 {
+			available = 20
+		}
+		subjectWidth = available
+	}
+
+	lines := make([]string, 0, len(commits)+2)
+	lines = append(lines, fmt.Sprintf(
+		"%-*s  %-*s  %-*s  %-*s",
+		hashWidth, "Hash",
+		subjectWidth, "Subject",
+		effortWidth, "Effort",
+		percentWidth, "Percent",
+	))
+	for _, commit := range commits {
+		lines = append(lines, fmt.Sprintf(
+			"%-*s  %-*s  %-*s  %-*s",
+			hashWidth, truncate(commit.Hash, hashWidth),
+			subjectWidth, truncate(commit.Subject, subjectWidth),
+			effortWidth, fmt.Sprintf("%d", commit.Effort),
+			percentWidth, fmt.Sprintf("%.1f%%", commit.Percent*100),
+		))
+	}
+	lines = append(lines, fmt.Sprintf(
+		"%-*s  %-*s  %-*s  %-*s",
+		hashWidth, "",
+		subjectWidth, "TOTAL",
+		effortWidth, fmt.Sprintf("%d", totalEffort),
+		percentWidth, "100.0%",
+	))
+
+	return strings.Join(lines, "\n")
+}
+
+func truncate(value string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= width {
+		return value
+	}
+	return string(runes[:width])
 }
