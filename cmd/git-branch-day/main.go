@@ -14,6 +14,10 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "version" {
+		fmt.Println(version)
+		return
+	}
 	repoPath, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -73,6 +77,8 @@ func main() {
 
 	fmt.Println("Rebase completed.")
 }
+
+const version = "0.1.0"
 
 func buildDisplay(commits []git.Commit) ([]tui.DisplayCommit, int) {
 	total := 0
