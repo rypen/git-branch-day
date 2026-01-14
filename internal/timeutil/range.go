@@ -88,9 +88,9 @@ func AllocateTimes(start, end time.Time, efforts []int) ([]time.Time, error) {
 				seconds = remaining
 			}
 		}
-		times[i] = start.Add(time.Duration(elapsed) * time.Second)
 		elapsed += seconds
 		remaining = totalSeconds - elapsed
+		times[i] = start.Add(time.Duration(elapsed) * time.Second)
 	}
 
 	return times, nil

@@ -20,7 +20,6 @@ type DisplayCommit struct {
 type Result struct {
 	Start    string
 	End      string
-	Confirm  bool
 	Canceled bool
 }
 
@@ -38,7 +37,6 @@ type Model struct {
 	form        *huh.Form
 	startValue  string
 	endValue    string
-	confirm     bool
 	stage       stage
 	errMsg      string
 	done        bool
@@ -49,7 +47,7 @@ type Model struct {
 	useViewport bool
 }
 
-func New(commits []DisplayCommit, totalEffort int) *Model {
+func New(commits []DisplayCommit, totalEffort int, startDefault string, endDefault string) *Model {
 	columns := []table.Column{
 		{Title: "Hash", Width: 10},
 		{Title: "Subject", Width: 50},
@@ -75,6 +73,8 @@ func New(commits []DisplayCommit, totalEffort int) *Model {
 		commits:     commits,
 		totalEffort: totalEffort,
 		table:       t,
+		startValue:  startDefault,
+		endValue:    endDefault,
 		stage:       stageTable,
 	}
 	model.viewport = viewport.New(0, 0)
@@ -82,7 +82,6 @@ func New(commits []DisplayCommit, totalEffort int) *Model {
 		huh.NewGroup(
 			huh.NewInput().Title("Start time (HH:MM)").Value(&model.startValue),
 			huh.NewInput().Title("End time (HH:MM)").Value(&model.endValue),
-			huh.NewConfirm().Title("Rewrite git history with these times?").Value(&model.confirm),
 		),
 	)
 	return model
@@ -102,7 +101,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if m.stage == stageTable {
 				m.stage = stageForm
-				return m, nil
+				return m, m.form.Init()
 			}
 		}
 		if m.stage == stageTable && m.useViewport {
@@ -163,8 +162,8 @@ func (m *Model) View() string {
 	return strings.Join(lines, "\n")
 }
 
-func Run(commits []DisplayCommit, totalEffort int) (Result, error) {
-	model := New(commits, totalEffort)
+func Run(commits []DisplayCommit, totalEffort int, startDefault string, endDefault string) (Result, error) {
+	model := New(commits, totalEffort, startDefault, endDefault)
 	program := tea.NewProgram(model)
 	finalModel, err := program.Run()
 	if err != nil {
@@ -174,7 +173,6 @@ func Run(commits []DisplayCommit, totalEffort int) (Result, error) {
 	return Result{
 		Start:    final.startValue,
 		End:      final.endValue,
-		Confirm:  final.confirm,
 		Canceled: final.canceled,
 	}, nil
 }
