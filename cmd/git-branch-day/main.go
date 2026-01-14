@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"branch-day/internal/git"
@@ -35,7 +36,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if result.Canceled || !result.Confirm {
+	if result.Canceled {
 		fmt.Println("Cancelled.")
 		return
 	}
@@ -56,6 +57,10 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+	if !result.Confirm {
+		fmt.Print(formatPreview(commits, times))
+		return
 	}
 
 	if err := rewrite.RebaseWithTimestamps(repoPath, commitHashes, times); err != nil {
@@ -94,4 +99,18 @@ func shortHash(hash string) string {
 		return hash
 	}
 	return hash[:7]
+}
+
+func formatPreview(commits []git.Commit, times []time.Time) string {
+	var builder strings.Builder
+	builder.WriteString("Planned commit timeline:\n")
+	for i, commit := range commits {
+		builder.WriteString(times[i].Format("2006-01-02 15:04"))
+		builder.WriteString("  ")
+		builder.WriteString(shortHash(commit.Hash))
+		builder.WriteString("  ")
+		builder.WriteString(commit.Subject)
+		builder.WriteString("\n")
+	}
+	return builder.String()
 }
