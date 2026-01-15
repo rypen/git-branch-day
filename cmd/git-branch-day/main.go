@@ -105,6 +105,7 @@ func buildDisplay(commits []git.Commit) ([]tui.DisplayCommit, int) {
 		display[i] = tui.DisplayCommit{
 			Hash:    shortHash(commit.Hash),
 			Subject: commit.Subject,
+			Date:    commit.AuthorDate.Format("2006-01-02 15:04"),
 			Effort:  commit.Effort,
 			Percent: percent,
 		}

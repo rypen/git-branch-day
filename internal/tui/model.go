@@ -13,6 +13,7 @@ import (
 type DisplayCommit struct {
 	Hash    string
 	Subject string
+	Date    string
 	Effort  int
 	Percent float64
 }
@@ -50,6 +51,7 @@ type Model struct {
 func New(commits []DisplayCommit, totalEffort int, startDefault string, endDefault string) *Model {
 	columns := []table.Column{
 		{Title: "Hash", Width: 10},
+		{Title: "Date", Width: 16},
 		{Title: "Subject", Width: 50},
 		{Title: "Effort", Width: 8},
 		{Title: "Percent", Width: 9},
@@ -58,6 +60,7 @@ func New(commits []DisplayCommit, totalEffort int, startDefault string, endDefau
 	for _, commit := range commits {
 		rows = append(rows, table.Row{
 			commit.Hash,
+			commit.Date,
 			commit.Subject,
 			fmt.Sprintf("%d", commit.Effort),
 			fmt.Sprintf("%.1f%%", commit.Percent*100),
@@ -179,11 +182,12 @@ func Run(commits []DisplayCommit, totalEffort int, startDefault string, endDefau
 
 func renderPlainTable(commits []DisplayCommit, totalEffort int, width int) string {
 	hashWidth := 8
+	dateWidth := 16
 	effortWidth := 6
 	percentWidth := 8
 	subjectWidth := 50
 	if width > 0 {
-		available := width - (hashWidth + effortWidth + percentWidth + 6)
+		available := width - (hashWidth + dateWidth + effortWidth + percentWidth + 8)
 		if available < 20 {
 			available = 20
 		}
@@ -192,24 +196,27 @@ func renderPlainTable(commits []DisplayCommit, totalEffort int, width int) strin
 
 	lines := make([]string, 0, len(commits)+2)
 	lines = append(lines, fmt.Sprintf(
-		"%-*s  %-*s  %-*s  %-*s",
+		"%-*s  %-*s  %-*s  %-*s  %-*s",
 		hashWidth, "Hash",
+		dateWidth, "Date",
 		subjectWidth, "Subject",
 		effortWidth, "Effort",
 		percentWidth, "Percent",
 	))
 	for _, commit := range commits {
 		lines = append(lines, fmt.Sprintf(
-			"%-*s  %-*s  %-*s  %-*s",
+			"%-*s  %-*s  %-*s  %-*s  %-*s",
 			hashWidth, truncate(commit.Hash, hashWidth),
+			dateWidth, truncate(commit.Date, dateWidth),
 			subjectWidth, truncate(commit.Subject, subjectWidth),
 			effortWidth, fmt.Sprintf("%d", commit.Effort),
 			percentWidth, fmt.Sprintf("%.1f%%", commit.Percent*100),
 		))
 	}
 	lines = append(lines, fmt.Sprintf(
-		"%-*s  %-*s  %-*s  %-*s",
+		"%-*s  %-*s  %-*s  %-*s  %-*s",
 		hashWidth, "",
+		dateWidth, "",
 		subjectWidth, "TOTAL",
 		effortWidth, fmt.Sprintf("%d", totalEffort),
 		percentWidth, "100.0%",
