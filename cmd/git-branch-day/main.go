@@ -78,7 +78,7 @@ func main() {
 	fmt.Println("Rebase completed.")
 }
 
-const version = "0.1.0"
+const version = "v0.1.0"
 
 func buildDisplay(commits []git.Commit) ([]tui.DisplayCommit, int) {
 	total := 0
