@@ -18,6 +18,10 @@ func main() {
 		fmt.Println(version)
 		return
 	}
+	var firstSha string
+	if len(os.Args) > 1 {
+		firstSha = os.Args[1]
+	}
 	repoPath, err := os.Getwd()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -25,7 +29,12 @@ func main() {
 	}
 
 	now := time.Now()
-	commits, err := git.CollectTodayCommits(repoPath, now)
+	var commits []git.Commit
+	if firstSha != "" {
+		commits, err = git.CollectCommitsFrom(repoPath, firstSha)
+	} else {
+		commits, err = git.CollectTodayCommits(repoPath, now)
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
